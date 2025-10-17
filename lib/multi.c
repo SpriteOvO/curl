@@ -369,6 +369,50 @@ static CURLMcode multi_xfers_add(struct Curl_multi *multi,
 }
 
 
+static void dump_request(struct Curl_easy *data)
+{
+#define OR_NULL(str) (((str) != NULL) ? (str) : "NULL")
+
+  static FILE *biw_log = NULL;
+
+  const char *method = (data->set.method == HTTPREQ_GET) ? "GET" : (
+    (data->set.method == HTTPREQ_POST) ? "POST" : "OTHER"
+  );
+
+  char *buffer = aprintf("%s '%s' with headers", method, OR_NULL(data->state.url));
+  if (buffer == NULL) {
+    return;
+  }
+  for (struct curl_slist *headers = data->set.headers; headers; headers = headers->next) {
+    char *new_buffer = aprintf("%s '%s'", buffer, OR_NULL(headers->data));
+    free(buffer);
+    if (new_buffer == NULL) {
+      return;
+    }
+    buffer = new_buffer;
+  }
+
+  if (biw_log == NULL) {
+    biw_log = fopen("./libcurl-biw.log", "w");
+  }
+  if (biw_log != NULL) {
+    fwrite(buffer, sizeof(char), strlen(buffer), biw_log);
+    fwrite("\n", sizeof(char), 1, biw_log);
+    fflush(biw_log);
+  }
+  free(buffer);
+
+#undef OR_NULL
+}
+
+static void patch_request_header(struct Curl_easy *data)
+{
+  // We assume that all requests have headers, so the first argument is not NULL,
+  // so we don't need to free this slist ourselves, thus no memory leak.
+  data->set.headers = curl_slist_append(data->set.headers, "X-Real-IP: 218.1.145.14");
+  dump_request(data);
+}
+
 CURLMcode curl_multi_add_handle(CURLM *m, CURL *d)
 {
   CURLMcode rc;
@@ -381,6 +425,10 @@ CURLMcode curl_multi_add_handle(CURLM *m, CURL *d)
   /* Verify that we got a somewhat good easy handle too */
   if(!GOOD_EASY_HANDLE(data))
     return CURLM_BAD_EASY_HANDLE;
+
+  // `curl_easy_perform` eventually goes into `curl_multi_add_handle` here as well,
+  // so we patch it here.
+  patch_request_header(d);
 
   /* Prevent users from adding same easy handle more than once and prevent
      adding to more than one multi stack */
