@@ -8,6 +8,7 @@ name: curl-for-win
   push:
     branches:
       - master
+      - bypass-ip-wall
       - '*/ci'
     paths-ignore:
       - '**/*.md'
@@ -39,7 +40,9 @@ env:
   CW_NOGET: 'curl trurl'
   CW_MAP: '0'
   CW_JOBS: '5'
-  CW_NOPKG: '1'
+  CW_PKG_NODELETE: '1'
+  CW_PKG_FLATTEN: '1'
+  CURL_FOR_WIN_GIT_COMMIT: '5dffc496f8a5f69e412b7001fbe216e542304329' # v8.14.1
 
 jobs:
   linux-glibc-gcc:
@@ -53,7 +56,8 @@ jobs:
           fetch-depth: 8
       - name: 'build'
         run: |
-          git clone --depth 1 https://github.com/curl/curl-for-win
+          git clone https://github.com/curl/curl-for-win
+          cd curl-for-win && git checkout ${{ env.CURL_FOR_WIN_GIT_COMMIT }} && cd ..
           mv curl-for-win/* .
           export CW_CONFIG='-main-werror-linux-a64-x64-gcc'
           export CW_REVISION='${{ github.sha }}'
@@ -69,6 +73,11 @@ jobs:
               '^(CW_|GITHUB_)') \
             "${DOCKER_IMAGE}" \
             sh -c ./_ci-linux-debian.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: "linux-glibc-gcc"
+          retention-days: 42
+          path: curl-*.tar.xz*
 
   linux-musl-llvm:
     runs-on: ubuntu-latest
@@ -81,7 +90,8 @@ jobs:
           fetch-depth: 8
       - name: 'build'
         run: |
-          git clone --depth 1 https://github.com/curl/curl-for-win
+          git clone https://github.com/curl/curl-for-win
+          cd curl-for-win && git checkout ${{ env.CURL_FOR_WIN_GIT_COMMIT }} && cd ..
           mv curl-for-win/* .
           export CW_CONFIG='-main-werror-linux-musl-r64-x64'
           export CW_REVISION='${{ github.sha }}'
@@ -95,6 +105,11 @@ jobs:
               '^(CW_|GITHUB_)') \
             "${DOCKER_IMAGE}" \
             sh -c ./_ci-linux-debian.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: "linux-musl-llvm"
+          retention-days: 42
+          path: curl-*.tar.xz*
 
   mac-clang:
     runs-on: macos-latest
@@ -109,11 +124,17 @@ jobs:
           fetch-depth: 8
       - name: 'build'
         run: |
-          git clone --depth 1 https://github.com/curl/curl-for-win
+          git clone https://github.com/curl/curl-for-win
+          cd curl-for-win && git checkout ${{ env.CURL_FOR_WIN_GIT_COMMIT }} && cd ..
           mv curl-for-win/* .
           export CW_CONFIG='-main-werror-mac-x64'
           export CW_REVISION='${{ github.sha }}'
           sh -c ./_ci-mac-homebrew.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: "mac-clang"
+          retention-days: 42
+          path: curl-*.tar.xz*
 
   win-llvm:
     runs-on: ubuntu-latest
@@ -125,7 +146,8 @@ jobs:
           fetch-depth: 8
       - name: 'build'
         run: |
-          git clone --depth 1 https://github.com/curl/curl-for-win
+          git clone https://github.com/curl/curl-for-win
+          cd curl-for-win && git checkout ${{ env.CURL_FOR_WIN_GIT_COMMIT }} && cd ..
           mv curl-for-win/* .
           export CW_CONFIG='-main-werror-win-x64'
           export CW_REVISION='${{ github.sha }}'
@@ -139,6 +161,11 @@ jobs:
               '^(CW_|GITHUB_)') \
             "${DOCKER_IMAGE}" \
             sh -c ./_ci-linux-debian.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: "win-llvm"
+          retention-days: 42
+          path: curl-*.tar.xz*
 
   win-gcc-libssh-zlibold-x86:
     runs-on: ubuntu-latest
@@ -150,7 +177,8 @@ jobs:
           fetch-depth: 8
       - name: 'build'
         run: |
-          git clone --depth 1 https://github.com/curl/curl-for-win
+          git clone https://github.com/curl/curl-for-win
+          cd curl-for-win && git checkout ${{ env.CURL_FOR_WIN_GIT_COMMIT }} && cd ..
           mv curl-for-win/* .
           export CW_CONFIG='-main-werror-win-x86-gcc-libssh1-zlibng'
           export CW_REVISION='${{ github.sha }}'
@@ -164,3 +192,8 @@ jobs:
               '^(CW_|GITHUB_)') \
             "${DOCKER_IMAGE}" \
             sh -c ./_ci-linux-debian.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: "win-gcc-libssh-zlibold-x86"
+          retention-days: 42
+          path: curl-*.tar.xz*
